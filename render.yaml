@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: skintel
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python app.py"
+    envVars:
+      # Pin Python so onnxruntime/opencv wheels resolve (avoid 3.13 default).
+      - key: PYTHON_VERSION
+        value: "3.11.9"

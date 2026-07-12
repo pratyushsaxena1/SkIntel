@@ -28,64 +28,31 @@ _gcu.get_type = _safe_get_type
 # --- end workaround ---
 
 import os
-import cv2
-import numpy as np
 import gradio as gr
-import onnxruntime as ort
 
-# Must match the training constants in the notebook:
-#   IMG_SEG_WIDTH = 256, IMG_SEG_HEIGHT = 192
-IMG_SEG_WIDTH = 256
-IMG_SEG_HEIGHT = 192
+from inference import analyze
 
-# Load the ONNX model once at startup (portable — no TensorFlow needed).
-session = ort.InferenceSession(
-    "skintel_unet.onnx", providers=["CPUExecutionProvider"]
+DISCLAIMER = (
+    "<div style='text-align:center'>Educational estimate only, not a medical "
+    "diagnosis. See a dermatologist for any concern.</div>"
 )
-INPUT_NAME = session.get_inputs()[0].name
-OUTPUT_NAME = session.get_outputs()[0].name
-
-
-def segment(image):
-    """Take an uploaded RGB image, return (mask overlay, binary mask)."""
-    if image is None:
-        return None, None
-
-    # Gradio hands us RGB. Training used cv2.imread (BGR) and never converted,
-    # so the model was trained on BGR -> convert to match.
-    bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-
-    # Resize to the model's input size. cv2 takes (width, height).
-    resized = cv2.resize(bgr, (IMG_SEG_WIDTH, IMG_SEG_HEIGHT))
-
-    # Training divided by 255 AND the model has an internal Lambda(x/255)
-    # (now baked into the ONNX graph), so feed 0-1 values to reproduce that.
-    net_input = (resized / 255.0).astype(np.float32)[None, ...]
-
-    # Predict -> sigmoid map in [0, 1], then threshold at 0.5.
-    pred = session.run([OUTPUT_NAME], {INPUT_NAME: net_input})[0]
-    mask = (pred[0, :, :, 0] > 0.5).astype(np.uint8)
-
-    # Build a red overlay on top of the (RGB) resized image for display.
-    display_rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
-    overlay = display_rgb.copy()
-    overlay[mask == 1] = (255, 0, 0)
-    blended = cv2.addWeighted(display_rgb, 0.6, overlay, 0.4, 0)
-
-    binary_mask = (mask * 255).astype(np.uint8)
-    return blended, binary_mask
-
 
 demo = gr.Interface(
-    fn=segment,
+    fn=analyze,
     inputs=gr.Image(type="numpy", label="Skin lesion image"),
     outputs=[
         gr.Image(label="Lesion overlay"),
         gr.Image(label="Segmentation mask"),
+        gr.Label(label="Malignancy estimate"),
     ],
-    title="SkIntel — Skin Lesion Segmentation",
-    description="Upload a dermoscopic image to outline the lesion region with a U-Net model.",
+    title="SkIntel: Skin Lesion Segmentation",
+    description=(
+        "<div style='text-align:center'>Upload a dermoscopic image to outline "
+        "the lesion region and estimate whether it may be malignant.</div>"
+    ),
+    article=DISCLAIMER,
     flagging_mode="never",
+    css="footer {display: none !important;}",
 )
 
 if __name__ == "__main__":

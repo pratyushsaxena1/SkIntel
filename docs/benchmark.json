@@ -1,0 +1,13 @@
+{
+  "input": "synthetic RGB uint8 image, 192x256",
+  "operation": "preprocessing, segmentation, overlay, classification",
+  "provider": "CPUExecutionProvider",
+  "platform": "macOS-15.7.4-arm64-arm-64bit",
+  "python": "3.11.3",
+  "onnxruntime": "1.30.0",
+  "warmup_runs": 5,
+  "measured_runs": 30,
+  "median_ms": 33.79,
+  "p95_ms": 44.9,
+  "excludes": "model loading, browser UI, network; does not measure accuracy"
+}

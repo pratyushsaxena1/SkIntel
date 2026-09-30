@@ -1,0 +1,10 @@
+
+
+# Local and generated files
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+.env
+benchmark-results.json
